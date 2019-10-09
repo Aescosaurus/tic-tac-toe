@@ -126,7 +126,7 @@ BOOL InitInstance( HINSTANCE hInstance,int nCmdShow )
 
 static constexpr int cellSize = 100;
 
-BOOL GetGameBoardRect( HWND hWnd,RECT* pRect )
+bool GetGameBoardRect( HWND hWnd,RECT* pRect )
 {
 	RECT rc;
 	if( GetClientRect( hWnd,&rc ) )
@@ -139,7 +139,7 @@ BOOL GetGameBoardRect( HWND hWnd,RECT* pRect )
 		pRect->right = pRect->left + cellSize * 3;
 		pRect->bottom = pRect->top + cellSize * 3;
 		
-		return( TRUE );
+		return( true );
 	}
 
 	SetRectEmpty( pRect );
@@ -148,7 +148,7 @@ BOOL GetGameBoardRect( HWND hWnd,RECT* pRect )
 
 void DrawLine( HDC hdc,int x1,int y1,int x2,int y2 )
 {
-	MoveToEx( hdc,x1,y1,NULL );
+	MoveToEx( hdc,x1,y1,nullptr );
 	LineTo( hdc,x2,y2 );
 }
 
@@ -174,6 +174,30 @@ int GetCellNumberFromPoint( HWND hWnd,int x,int y )
 		}
 	}
 	return( -1 ); // Outside game board = failure.
+}
+
+bool GetCellRect( HWND hWnd,int index,RECT* pRect )
+{
+	RECT rcBoard;
+	
+	SetRectEmpty( pRect );
+
+	if( index >= 0 && index <= 8 &&
+		GetGameBoardRect( hWnd,&rcBoard ) )
+	{
+		// Convert index from 0 to 8 to x,y pair.
+		const int x = index % 3; // Row number.
+		const int y = index / 3; // Column number.
+
+		pRect->left = rcBoard.left + x * cellSize + 1;
+		pRect->top = rcBoard.top + y * cellSize + 1;
+		pRect->right = pRect->left + cellSize - 1;
+		pRect->bottom = pRect->top + cellSize - 1;
+
+		return( true );
+	}
+
+	return( false );
 }
 
 LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
@@ -211,8 +235,18 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 			// wsprintf( temp,L"Index = %d",index );
 			// TextOut( hdc,xPos,yPos,temp,lstrlen( temp ) );
 
-			std::string msg = "Index = " + std::to_string( index );
-			TextOutA( hdc,xPos,yPos,msg.c_str(),msg.length() );
+			// std::string msg = "Index = " + std::to_string( index );
+			// TextOutA( hdc,xPos,yPos,msg.c_str(),msg.length() );
+
+			// Get cell dimension from index.
+			if( index != -1 )
+			{
+				RECT rcCell;
+				if( GetCellRect( hWnd,index,&rcCell ) )
+				{
+					FillRect( hdc,&rcCell,HBRUSH( GetStockObject( WHITE_BRUSH ) ) );
+				}
+			}
 
 			ReleaseDC( hWnd,hdc );
 		}
