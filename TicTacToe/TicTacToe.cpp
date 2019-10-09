@@ -3,6 +3,8 @@
 
 #include "stdafx.h"
 #include "TicTacToe.h"
+#include <windowsx.h>
+#include <string>
 
 #define MAX_LOADSTRING 100
 
@@ -75,7 +77,7 @@ ATOM MyRegisterClass( HINSTANCE hInstance )
 	wcex.hInstance = hInstance;
 	wcex.hIcon = LoadIcon( hInstance,MAKEINTRESOURCE( IDI_TICTACTOE ) );
 	wcex.hCursor = LoadCursor( nullptr,IDC_ARROW );
-	wcex.hbrBackground = ( HBRUSH )( COLOR_WINDOW + 1 );
+	wcex.hbrBackground = ( HBRUSH )( GetStockObject( GRAY_BRUSH ) );
 	wcex.lpszMenuName = MAKEINTRESOURCEW( IDC_TICTACTOE );
 	wcex.lpszClassName = szWindowClass;
 	wcex.hIconSm = LoadIcon( wcex.hInstance,MAKEINTRESOURCE( IDI_SMALL ) );
@@ -124,6 +126,56 @@ BOOL InitInstance( HINSTANCE hInstance,int nCmdShow )
 
 static constexpr int cellSize = 100;
 
+BOOL GetGameBoardRect( HWND hWnd,RECT* pRect )
+{
+	RECT rc;
+	if( GetClientRect( hWnd,&rc ) )
+	{
+		const int width = rc.right - rc.left;
+		const int height = rc.bottom - rc.top;
+
+		pRect->left = ( width - cellSize * 3 ) / 2;
+		pRect->top = ( height - cellSize * 3 ) / 2;
+		pRect->right = pRect->left + cellSize * 3;
+		pRect->bottom = pRect->top + cellSize * 3;
+		
+		return( TRUE );
+	}
+
+	SetRectEmpty( pRect );
+	return( false );
+}
+
+void DrawLine( HDC hdc,int x1,int y1,int x2,int y2 )
+{
+	MoveToEx( hdc,x1,y1,NULL );
+	LineTo( hdc,x2,y2 );
+}
+
+int GetCellNumberFromPoint( HWND hWnd,int x,int y )
+{
+	POINT pt{ x,y };
+	RECT rc;
+
+	if( GetGameBoardRect( hWnd,&rc ) )
+	{
+		if( PtInRect( &rc,pt ) )
+		{
+			// User clicked inside game board.
+			// Normalize (0 to cellSize * 3).
+			x = pt.x - rc.left;
+			y = pt.y - rc.top;
+
+			const int column = x / cellSize;
+			const int row = y / cellSize;
+
+			// Convert to index (0 to 8).
+			return( row * 3 + column );
+		}
+	}
+	return( -1 ); // Outside game board = failure.
+}
+
 LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 {
 	switch( message )
@@ -145,6 +197,27 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 		}
 	}
 	break;
+	case WM_LBUTTONDOWN:
+	{
+		const int xPos = GET_X_LPARAM( lParam );
+		const int yPos = GET_Y_LPARAM( lParam );
+
+		const int index = GetCellNumberFromPoint( hWnd,xPos,yPos );
+		HDC hdc = GetDC( hWnd );
+
+		if( hdc != nullptr )
+		{
+			// WCHAR temp[100];
+			// wsprintf( temp,L"Index = %d",index );
+			// TextOut( hdc,xPos,yPos,temp,lstrlen( temp ) );
+
+			std::string msg = "Index = " + std::to_string( index );
+			TextOutA( hdc,xPos,yPos,msg.c_str(),msg.length() );
+
+			ReleaseDC( hWnd,hdc );
+		}
+	}
+	break;
 	case WM_GETMINMAXINFO:
 	{
 		MINMAXINFO* pMinMax = ( MINMAXINFO* )lParam;
@@ -152,24 +225,27 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 		pMinMax->ptMinTrackSize.x = cellSize * 5;
 		pMinMax->ptMinTrackSize.y = cellSize * 5;
 	}
-		break;
+	break;
 	case WM_PAINT:
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint( hWnd,&ps );
 		// TODO: Add any drawing code that uses hdc here...
 		RECT rc;
-		if( GetClientRect( hWnd,&rc ) )
+		if( GetGameBoardRect( hWnd,&rc ) )
 		{
-			const int width = rc.right - rc.left;
-			const int height = rc.bottom - rc.top;
+			FillRect( hdc,&rc,HBRUSH( GetStockObject( WHITE_BRUSH ) ) );
+			// Rectangle( hdc,rc.left,rc.top,rc.right,rc.bottom );
+		}
 
-			const int left = ( width - cellSize * 3 ) / 2;
-			const int top = ( height - cellSize * 3 ) / 2;
-			const int right = left + cellSize * 3;
-			const int bottom = top + cellSize * 3;
-
-			Rectangle( hdc,left,top,right,bottom );
+		for( int i = 0; i < 4; ++i )
+		{
+			// Draw vertical lines.
+			DrawLine( hdc,rc.left + i * cellSize,rc.top,
+				rc.left + i * cellSize,rc.bottom );
+			// Draw horizontal lines.
+			DrawLine( hdc,rc.left,rc.top + i * cellSize,
+				rc.right,rc.top + i * cellSize );
 		}
 		// 
 		EndPaint( hWnd,&ps );
