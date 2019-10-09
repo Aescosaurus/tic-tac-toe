@@ -125,6 +125,9 @@ BOOL InitInstance( HINSTANCE hInstance,int nCmdShow )
 //
 
 static constexpr int cellSize = 100;
+HBRUSH hbr1;
+HBRUSH hbr2;
+int playerTurn = 1;
 
 bool GetGameBoardRect( HWND hWnd,RECT* pRect )
 {
@@ -204,6 +207,12 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 {
 	switch( message )
 	{
+	case WM_CREATE:
+	{
+		hbr1 = CreateSolidBrush( RGB( 255,0,0 ) );
+		hbr2 = CreateSolidBrush( RGB( 0,0,255 ) );
+	}
+	break;
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD( wParam );
@@ -244,8 +253,11 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 				RECT rcCell;
 				if( GetCellRect( hWnd,index,&rcCell ) )
 				{
-					FillRect( hdc,&rcCell,HBRUSH( GetStockObject( WHITE_BRUSH ) ) );
+					FillRect( hdc,&rcCell,
+						playerTurn == 1 ? hbr1 : hbr2 );
 				}
+
+				playerTurn = playerTurn == 1 ? 2 : 1;
 			}
 
 			ReleaseDC( hWnd,hdc );
@@ -286,6 +298,9 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 	}
 	break;
 	case WM_DESTROY:
+		DeleteObject( hbr1 );
+		DeleteObject( hbr2 );
+
 		PostQuitMessage( 0 );
 		break;
 	default:
