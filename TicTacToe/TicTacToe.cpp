@@ -144,7 +144,7 @@ bool GetGameBoardRect( HWND hWnd,RECT* pRect )
 		pRect->top = ( height - cellSize * 3 ) / 2;
 		pRect->right = pRect->left + cellSize * 3;
 		pRect->bottom = pRect->top + cellSize * 3;
-		
+
 		return( true );
 	}
 
@@ -185,7 +185,7 @@ int GetCellNumberFromPoint( HWND hWnd,int x,int y )
 bool GetCellRect( HWND hWnd,int index,RECT* pRect )
 {
 	RECT rcBoard;
-	
+
 	SetRectEmpty( pRect );
 
 	if( index >= 0 && index <= 8 &&
@@ -259,6 +259,24 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 		// Parse the menu selections:
 		switch( wmId )
 		{
+		case ID_FILE_NEWGAME:
+		{
+			const int action = MessageBox( hWnd,
+				L"Are you sure you want to start a new game?",
+				L"New Game",MB_YESNO | MB_ICONQUESTION );
+			if( action == IDYES )
+			{
+				// Reset and start a new game.
+				playerTurn = 1;
+				winner = 0;
+				ZeroMemory( gameBoard,sizeof( gameBoard ) );
+
+				// Force a paint message.
+				InvalidateRect( hWnd,nullptr,true ); // Post WM_PAINT to wndProc.
+				UpdateWindow( hWnd ); // Force immediate handling of WM_PAINT.
+			}
+		}
+		break;
 		case IDM_ABOUT:
 			DialogBox( hInst,MAKEINTRESOURCE( IDD_ABOUTBOX ),hWnd,About );
 			break;
