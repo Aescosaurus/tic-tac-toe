@@ -129,6 +129,8 @@ HBRUSH hbr1;
 HBRUSH hbr2;
 int playerTurn = 1;
 int gameBoard[9] = { 0 };
+int winner = 0;
+int wins[3];
 
 bool GetGameBoardRect( HWND hWnd,RECT* pRect )
 {
@@ -204,6 +206,43 @@ bool GetCellRect( HWND hWnd,int index,RECT* pRect )
 	return( false );
 }
 
+// Returns:
+//  0 - No winner.
+//  1 - Player 1 wins.
+//  2 - Player 2 wins.
+//  3 - Cat's game.
+int GetWinner( int wins[3] )
+{
+	const int cells[] = { 0,1,2,3,4,5,6,7,8,
+		0,3,6,1,4,7,2,5,8,
+		0,4,8,2,4,6 };
+
+	// Check for winner.
+	for( int i = 0; i < ARRAYSIZE( cells ); i += 3 )
+	{
+		if( gameBoard[cells[i]] != 0 &&
+			gameBoard[cells[i]] == gameBoard[cells[i + 1]] &&
+			gameBoard[cells[i]] == gameBoard[cells[i + 2]] )
+		{
+			// We have a winner!
+			wins[0] = cells[i];
+			wins[1] = cells[i + 1];
+			wins[2] = cells[i + 2];
+
+			return( gameBoard[cells[i]] );
+		}
+	}
+
+	// See if we have any cells left empty.
+	for( int i = 0; i < ARRAYSIZE( gameBoard ); ++i )
+	{
+		// Continue playing.
+		if( gameBoard[i] == 0 ) return( 0 );
+	}
+
+	return( 3 );
+}
+
 LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 {
 	switch( message )
@@ -236,6 +275,9 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 		const int xPos = GET_X_LPARAM( lParam );
 		const int yPos = GET_Y_LPARAM( lParam );
 
+		// Only handle clicks if it is a player turn.
+		if( playerTurn == 0 ) break;
+
 		const int index = GetCellNumberFromPoint( hWnd,xPos,yPos );
 		HDC hdc = GetDC( hWnd );
 
@@ -260,7 +302,34 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 					FillRect( hdc,&rcCell,
 						playerTurn == 1 ? hbr1 : hbr2 );
 
-					playerTurn = playerTurn == 1 ? 2 : 1;
+					// Check for a winner.
+					winner = GetWinner( wins );
+
+					if( winner == 1 || winner == 2 )
+					{
+						// We have a winner!
+						MessageBox( hWnd,winner == 1
+							? L"Player 1 wins!"
+							: L"Player 2 wins!",
+							L"You win!",
+							MB_OK | MB_ICONINFORMATION );
+
+						playerTurn = 0;
+					}
+					else if( winner == 3 )
+					{
+						// It's a draw!
+						MessageBox( hWnd,
+							L"It's a cat's game!",
+							L"It's a draw!",
+							MB_OK | MB_ICONEXCLAMATION );
+
+						playerTurn = 0;
+					}
+					else if( winner == 0 )
+					{
+						playerTurn = playerTurn == 1 ? 2 : 1;
+					}
 				}
 			}
 
