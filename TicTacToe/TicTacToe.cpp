@@ -243,6 +243,39 @@ int GetWinner( int wins[3] )
 	return( 3 );
 }
 
+void ShowTurn( HWND hWnd,HDC hdc )
+{
+	static const WCHAR szTurn1[] = L"Turn: Player 1";
+	static const WCHAR szTurn2[] = L"Turn: Player 2";
+
+	const WCHAR* pszTurnText = nullptr;
+	switch( winner )
+	{
+	case 0: // Continue to play.
+		pszTurnText = playerTurn == 1 ? szTurn1 : szTurn2;
+		break;
+	case 1: // Player 1 wins.
+		pszTurnText = L"Player 1 is the winner!";
+		break;
+	case 2: // Player 2 wins.
+		pszTurnText = L"Player 2 is the winner!";
+		break;
+	case 3: // It's a draw
+		pszTurnText = L"It's a draw!";
+	}
+	RECT rc;
+
+	if( pszTurnText != nullptr && GetClientRect( hWnd,&rc ) )
+	{
+		rc.top = rc.bottom - 48;
+		FillRect( hdc,&rc,HBRUSH( GetStockObject( GRAY_BRUSH ) ) );
+		SetTextColor( hdc,RGB( 255,255,255 ) );
+		SetBkMode( hdc,TRANSPARENT );
+		DrawText( hdc,pszTurnText,lstrlen( pszTurnText ),
+			&rc,DT_CENTER );
+	}
+}
+
 LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 {
 	switch( message )
@@ -348,6 +381,9 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 					{
 						playerTurn = playerTurn == 1 ? 2 : 1;
 					}
+
+					// Display turn.
+					ShowTurn( hWnd,hdc );
 				}
 			}
 
@@ -384,6 +420,9 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 				TextOut( hdc,16,16,szPlayer1,ARRAYSIZE( szPlayer1 ) );
 				SetTextColor( hdc,RGB( 0,0,255 ) );
 				TextOut( hdc,rcClient.right - 72,16,szPlayer2,ARRAYSIZE( szPlayer2 ) );
+
+				// Display turn.
+				ShowTurn( hWnd,hdc );
 			}
 
 			FillRect( hdc,&rc,HBRUSH( GetStockObject( WHITE_BRUSH ) ) );
