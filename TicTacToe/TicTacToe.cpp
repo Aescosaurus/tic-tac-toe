@@ -128,6 +128,7 @@ static constexpr int cellSize = 100;
 HBRUSH hbr1;
 HBRUSH hbr2;
 int playerTurn = 1;
+int gameBoard[9] = { 0 };
 
 bool GetGameBoardRect( HWND hWnd,RECT* pRect )
 {
@@ -251,13 +252,16 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 			if( index != -1 )
 			{
 				RECT rcCell;
-				if( GetCellRect( hWnd,index,&rcCell ) )
+				if( gameBoard[index] == 0 &&
+					GetCellRect( hWnd,index,&rcCell ) )
 				{
+					gameBoard[index] = playerTurn;
+
 					FillRect( hdc,&rcCell,
 						playerTurn == 1 ? hbr1 : hbr2 );
-				}
 
-				playerTurn = playerTurn == 1 ? 2 : 1;
+					playerTurn = playerTurn == 1 ? 2 : 1;
+				}
 			}
 
 			ReleaseDC( hWnd,hdc );
@@ -292,6 +296,17 @@ LRESULT CALLBACK WndProc( HWND hWnd,UINT message,WPARAM wParam,LPARAM lParam )
 			// Draw horizontal lines.
 			DrawLine( hdc,rc.left,rc.top + i * cellSize,
 				rc.right,rc.top + i * cellSize );
+		}
+
+		// Draw all occupied cells.
+		RECT rcCell;
+		for( int i = 0; i < ARRAYSIZE( gameBoard ); ++i )
+		{
+			if( gameBoard[i] != 0 &&
+				GetCellRect( hWnd,i,&rcCell ) )
+			{
+				FillRect( hdc,&rcCell,gameBoard[i] == 1 ? hbr1 : hbr2 );
+			}
 		}
 		// 
 		EndPaint( hWnd,&ps );
